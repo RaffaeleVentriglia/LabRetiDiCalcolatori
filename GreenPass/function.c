@@ -107,12 +107,12 @@ ssize_t FullWrite(int fd, void *buf, size_t count) {
     size_t nleft;
     ssize_t nwritten;
     nleft = count;
-    while(nleft > 0) {
+    while(nleft > 0) { // finchè non ci sono elementi a sinistra
         if((nwritten = write(fd, buf, count)) < 0) {
-            if(errno == EINTR)
-                continue;
+            if(errno == EINTR) // se interrotto tramite una system call
+                continue; // ripeti il loop
             else {
-                perror("write");
+                perror("write"); // altrimenti esci con l'errore
                 exit(nwritten);
             }
         }
@@ -126,18 +126,18 @@ ssize_t FullRead(int fd, void *buf, size_t count) {
     size_t nleft;
     ssize_t nread;
     nleft = count;
-    while(nleft > 0) {
+    while(nleft > 0) { // finchè non ci sono elementi a sinistra
         if((nread = read(fd, buf, count)) < 0) {
-            if(errno == EINTR)
-                continue;
+            if(errno == EINTR)  // se interrotto tramite una system call
+                continue; // ripeti il loop
             else {
-                perror("read");
+                perror("read"); // altrimenti esci con l'errore
                 exit(1);
             }
-        } else if(nread == 0)
-            break;
-        nleft -= nread;
-        buf += nread;
+        } else if(nread == 0) // EOF
+            break; // interrompi il loop
+        nleft -= nread; // settiamo il left su read
+        buf += nread; // settiamo il puntatore
     }
     buf = 0;
     return nleft;
