@@ -2,8 +2,11 @@
 #define FUNCTION_H
 
 #include "wrapper.h"
+#include "function.h"
 
 #define CODELENGTH 16
+
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct GreenPass {
   char TesSan[CODELENGTH+1]; // codice fiscale
@@ -25,9 +28,7 @@ int search_modify_record(struct GreenPass *, int);
 void print_greenpass(struct GreenPass *);
 off_t where_is(int, char *);
 int see_status(char *, int);
-
-#include "wrapper.h"
-#include "function.h"
+int checkFrom(struct GreenPass *, int);
 
 struct GreenPass *create_record(char *TS, int duration, int status, int from) {
     struct GreenPass *out = (struct GreenPass *)malloc(sizeof(struct GreenPass));
@@ -94,14 +95,14 @@ void print_greenpass(struct GreenPass *gp) {
 
 off_t where_is(int fd, char *TS) {
     char buff[10];
-    char tempTS[CODELENGTH+1];
+    char tempTS[CODELENGTH];
     int row;
     off_t temp = 0;
     lseek(fd, 0, SEEK_SET);
     while((row = read(fd, buff, 10)) > 0) {
         temp += row;
         strncpy(tempTS, buff, sizeof(tempTS));
-        tempTS[CODELENGTH] = '\0';
+        tempTS[CODELENGTH+1] = '\0';
         if(strncmp(tempTS, TS, CODELENGTH) == 0)
             return temp;
         else {
@@ -124,6 +125,43 @@ int see_status(char *TS, int fp) {
         return 0;
     else
         return 3;
+}
+
+int checkFrom(struct GreenPass* gp, int fd) {
+    if(gp == NULL) {
+        fprintf(stderr, "Green Pass vuoto, termino\n");
+        return -1;
+    }
+
+    if(gp->from == 0) { // se il campo FROM vale 0, allora il pacchetto arriva dal centro vaccinale
+        pthread_mutex_lock(&mutex);
+        search_record(gp, fd);
+        pthread_mutex_unlock(&mutex);
+        return 2;
+    } else if(gp->from == 1) {
+        int status = 0;
+        pthread_mutex_lock(&mutex);
+        status = see_status(gp->TesSan, fd);
+        pthread_mutex_unlock(&mutex);
+        if(status > 1)
+            return 1;
+        else
+            return status;
+    } else if(gp->from == 2) {
+        printf("Cerco Green Pass\n");
+        int status = 3;
+        pthread_mutex_lock(&mutex);
+        status = search_modify_record(gp, fd);
+        pthread_mutex_unlock(&mutex);
+        if(status == 0)
+            printf("Green Pass non presente\n");
+        else if(status == 1)
+            printf("Green Pass modificato\n");
+        
+        return 2;
+    }
+
+    return -1;
 }
 
 #endif
