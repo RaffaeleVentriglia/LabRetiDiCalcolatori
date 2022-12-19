@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
     char *res;
 
     printf("Apertura del file GreenPass.txt\n");
-    if((fd = open("GreenPass.txt", O_RDWR || O_CREAT, 0666)) < 1) {
+    if((fd = open("GreenPass.txt", O_RDWR | O_CREAT, 0777)) < 1) {
         fprintf(stderr, "Errore nell'apertura del file\n");
         exit(1);
     }
